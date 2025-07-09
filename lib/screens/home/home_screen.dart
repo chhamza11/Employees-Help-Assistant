@@ -7,6 +7,7 @@ import '../history/history_screen.dart';
 import 'chat_screen.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -49,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _showDropdown = false;
       });
     } else {
-      final matches = faqs.where((faq) => faq['question']!.toLowerCase().contains(query)).take(3).toList();
+      final matches = faqs.where((faq) => faq['question']!.toLowerCase().contains(query)).take(5).toList();
       setState(() {
         filteredFaqs = matches;
         _showDropdown = matches.isNotEmpty;
@@ -80,6 +81,89 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showContactHRDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.7),
+      builder: (context) {
+        return Center(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.85,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(Icons.phone, color: AppColors.primary, size: 38),
+                const SizedBox(height: 12),
+                Text('Contact HR', style: AppStyles.sectionTitle),
+                const SizedBox(height: 8),
+                Text('How would you like to contact HR?', style: AppStyles.cardDescription, textAlign: TextAlign.center),
+                const SizedBox(height: 24),
+                CustomButton(
+                  text: 'Phone Call',
+                  icon: Icons.phone,
+                  background: AppColors.primary,
+                  onPressed: () async {
+                    const hrNumber = '+923299922219';
+                    final Uri phoneUri = Uri(scheme: 'tel', path: hrNumber);
+                    if (await canLaunchUrl(phoneUri)) {
+                      await launchUrl(phoneUri);
+                    }
+                    Navigator.of(context).pop();
+                  },
+                ),
+                const SizedBox(height: 14),
+                CustomButton(
+                  text: 'WhatsApp Message',
+                  icon: Icons.message,
+                  background: const Color(0xFF25D366),
+                  onPressed: () async {
+                    const hrNumber = '923299922219';
+                    const message = 'Hello, I need assistance from HR.';
+                    final waUrl = Uri.parse('https://wa.me/$hrNumber?text=${Uri.encodeComponent(message)}');
+                    bool launched = false;
+                    if (await canLaunchUrl(waUrl)) {
+                      launched = await launchUrl(waUrl, mode: LaunchMode.externalApplication);
+                    }
+                    if (!launched) {
+                      // Try whatsapp:// scheme as fallback
+                      final whatsappScheme = Uri.parse('whatsapp://send?phone=$hrNumber&text=${Uri.encodeComponent(message)}');
+                      if (await canLaunchUrl(whatsappScheme)) {
+                        await launchUrl(whatsappScheme);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('WhatsApp is not installed or cannot be opened.')),
+                        );
+                      }
+                    }
+                    Navigator.of(context).pop();
+                  },
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Cancel', style: AppStyles.cardDescription.copyWith(color: AppColors.white70)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -97,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 16),
+              const SizedBox(height: 22),
               Text('Hi Hamza 👋', style: AppStyles.homeGreeting),
               const SizedBox(height: 4),
               Text('What do you need help with today?', style: AppStyles.homeSubtitle),
@@ -126,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
               if (_showDropdown && filteredFaqs.isNotEmpty)
                 Container(
                   color: AppColors.background,
-                  constraints: const BoxConstraints(maxHeight: 180),
+                  constraints: const BoxConstraints(maxHeight: 500),
                   margin: const EdgeInsets.only(top: 4, bottom: 8),
                   child: Material(
                     color: Colors.transparent,
@@ -173,17 +257,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Icons.history,
                         label: 'Query History',
                         color: AppColors.secondary,
-                        onTap: () => HistoryScreen(),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                          );
+                        },
                       ),
                       const _BigActionButton(
                         icon: Icons.policy,
                         label: 'Leave Policies',
                         color: Color(0xFF6C63FF),
                       ),
-                      const _BigActionButton(
+                      _BigActionButton(
                         icon: Icons.phone,
                         label: 'Contact HR',
                         color: Color(0xFF00D1A0),
+                        onTap: () => _showContactHRDialog(context),
                       ),
                     ],
                   ),

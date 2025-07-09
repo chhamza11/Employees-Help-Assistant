@@ -6,6 +6,7 @@ class InputField extends StatelessWidget {
   final IconData? prefixIcon;
   final IconData? suffixIcon;
   final bool obscureText;
+  final Color? cursorColor;
   final ValueChanged<String>? onChanged;
 
   const InputField({
@@ -14,7 +15,8 @@ class InputField extends StatelessWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.obscureText = false,
-    this.onChanged,
+    this.onChanged, required TextInputType keyboardType,
+    this.cursorColor,
   }) : super(key: key);
 
   @override

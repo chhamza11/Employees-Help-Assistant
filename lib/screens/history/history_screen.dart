@@ -1,13 +1,43 @@
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
-import '../../core/styles.dart';
+// import '../../core/styles.dart';
 import '../../widgets/query_card.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({Key? key}) : super(key: key);
 
   @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  Box? historyBox;
+
+  @override
+  void initState() {
+    super.initState();
+    _initHive();
+  }
+
+  Future<void> _initHive() async {
+    await Hive.initFlutter();
+    historyBox = await Hive.openBox('query_history');
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (historyBox == null || !historyBox!.isOpen) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+    List history = historyBox!.values.toList().reversed.toList();
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -49,46 +79,20 @@ class HistoryScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Expanded(
-                child: ListView(
-                  children: [
-                    QueryCard(
-                      title: 'How to apply for sick leave?',
-                      description: 'You can request leave through the HR portal...',
-                      icon: Icons.sick,
-                      timeAgo: '2d ago',
-                    ),
-                    QueryCard(
-                      title: 'Password reset procedure',
-                      description: 'To reset your password, go to IT support...',
-                      icon: Icons.lock,
-                      timeAgo: '5d ago',
-                    ),
-                    QueryCard(
-                      title: 'Expense report submission',
-                      description: 'Submit your expense reports through the finance...',
-                      icon: Icons.receipt_long,
-                      timeAgo: '1w ago',
-                    ),
-                    QueryCard(
-                      title: 'Office access card request',
-                      description: 'For new access cards, contact administration...',
-                      icon: Icons.badge,
-                      timeAgo: '2w ago',
-                    ),
-                    QueryCard(
-                      title: 'Team meeting schedule',
-                      description: 'Weekly team meetings are scheduled every...',
-                      icon: Icons.calendar_today,
-                      timeAgo: '3w ago',
-                    ),
-                    QueryCard(
-                      title: 'Software installation guide',
-                      description: 'To install new software, follow these steps...',
-                      icon: Icons.computer,
-                      timeAgo: '1mo ago',
-                    ),
-                  ],
-                ),
+                child: history.isEmpty
+                    ? const Center(child: Text('No query history yet.', style: TextStyle(color: Colors.white54)))
+                    : ListView.builder(
+                        itemCount: history.length,
+                        itemBuilder: (context, idx) {
+                          final entry = history[idx];
+                          return QueryCard(
+                            title: entry['question'] ?? '',
+                            description: entry['answer'] ?? '',
+                            icon: Icons.history,
+                            timeAgo: '',
+                          );
+                        },
+                      ),
               ),
             ],
           ),
