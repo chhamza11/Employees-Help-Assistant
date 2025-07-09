@@ -9,16 +9,21 @@ class CustomButton extends StatelessWidget {
   final Color? textColor;
   final VoidCallback? onPressed;
   final bool useGradient;
+  final int? iconSize;
+  final String? imageUrl;
+
 
   const CustomButton({
-    Key? key,
+    super.key,
     required this.text,
     this.icon,
     this.background,
     this.textColor,
     this.onPressed,
+    this.iconSize,
     this.useGradient = false,
-  }) : super(key: key);
+    this.imageUrl,
+  });
 
   @override
   Widget build(BuildContext context) {

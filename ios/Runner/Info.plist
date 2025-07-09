@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Allow tel and whatsapp schemes for url_launcher -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>whatsapp</string>
+	</array>
 </dict>
 </plist>
