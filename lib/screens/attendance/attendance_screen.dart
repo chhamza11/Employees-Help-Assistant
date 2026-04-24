@@ -8,8 +8,6 @@ import '../../core/time_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/attendance_provider.dart';
 import '../../models/attendance_model.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/status_badge.dart';
 import '../../widgets/empty_state.dart';
 
 class AttendanceScreen extends ConsumerStatefulWidget {
@@ -74,6 +72,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
   }
 }
 
+// ─── Today Tab ───────────────────────────────────────────────────────────────
+
 class _TodayTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -97,7 +97,8 @@ class _TodayTab extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AppCard(
+            // Status section
+            Center(
               child: Column(
                 children: [
                   Icon(
@@ -118,83 +119,74 @@ class _TodayTab extends ConsumerWidget {
                   if (attendance?.clockIn != null) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'Clock In: ${_formatTime(attendance!.clockIn!)}',
+                      'Clock In: ${formatTimePKT(attendance!.clockIn!)}',
                       style: AppStyles.cardDescription,
                     ),
                   ],
                   if (attendance?.clockOut != null)
                     Text(
-                      'Last Clock Out: ${_formatTime(attendance!.clockOut!)}',
-                      style: AppStyles.cardDescription.copyWith(color: AppColors.primary),
+                      'Last Clock Out: ${formatTimePKT(attendance!.clockOut!)}',
+                      style: AppStyles.cardDescription
+                          .copyWith(color: AppColors.primary),
                     ),
-                  if (attendance?.totalHours != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Total: ${attendance!.totalHours!.toStringAsFixed(1)} hours',
-                      style: AppStyles.cardTitle.copyWith(
-                        color: AppColors.primary,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: state.isClocking
-                          ? null
-                          : () async {
-                              if (hasClockedIn) {
-                                await ref
-                                    .read(attendanceProvider.notifier)
-                                    .clockOut(user.id);
-                              } else {
-                                await ref
-                                    .read(attendanceProvider.notifier)
-                                    .clockIn(user.id);
-                              }
-                              final error = ref.read(attendanceProvider).error;
-                              if (error != null && context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(error),
-                                    backgroundColor: const Color(0xFFE74C3C),
-                                  ),
-                                );
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        disabledBackgroundColor: AppColors.card,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: state.isClocking
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(
-                              hasClockedIn ? 'Clock Out' : 'Clock In',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                    ),
-                  ),
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: state.isClocking
+                    ? null
+                    : () async {
+                        if (hasClockedIn) {
+                          await ref
+                              .read(attendanceProvider.notifier)
+                              .clockOut(user.id);
+                        } else {
+                          await ref
+                              .read(attendanceProvider.notifier)
+                              .clockIn(user.id);
+                        }
+                        final error = ref.read(attendanceProvider).error;
+                        if (error != null && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(error),
+                              backgroundColor: const Color(0xFFE74C3C),
+                            ),
+                          );
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  disabledBackgroundColor: AppColors.card,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: state.isClocking
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        hasClockedIn ? 'Clock Out' : 'Clock In',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+              ),
+            ),
             if (hasClockedIn && !isClockedOut) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Text('Breaks', style: AppStyles.sectionTitle),
               const SizedBox(height: 8),
               Row(
@@ -238,41 +230,38 @@ class _TodayTab extends ConsumerWidget {
                 const SizedBox(height: 12),
                 ...state.todayBreaks.map((brk) => Padding(
                       padding: const EdgeInsets.only(bottom: 6),
-                      child: AppCard(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            Icon(
-                              brk.breakType == 'lunch'
-                                  ? Iconsax.coffee
-                                  : Iconsax.cup,
-                              color: AppColors.white70,
-                              size: 18,
+                      child: Row(
+                        children: [
+                          Icon(
+                            brk.breakType == 'lunch'
+                                ? Iconsax.coffee
+                                : Iconsax.cup,
+                            color: AppColors.white70,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              '${brk.breakType[0].toUpperCase()}${brk.breakType.substring(1)} Break',
+                              style: AppStyles.cardDescription,
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                '${brk.breakType[0].toUpperCase()}${brk.breakType.substring(1)} Break',
-                                style: AppStyles.cardDescription,
+                          ),
+                          if (brk.isActive)
+                            TextButton(
+                              onPressed: () => ref
+                                  .read(attendanceProvider.notifier)
+                                  .endBreak(brk.id),
+                              child: const Text(
+                                'End',
+                                style: TextStyle(color: AppColors.primary),
                               ),
+                            )
+                          else
+                            Text(
+                              '${brk.duration ?? 0} min',
+                              style: AppStyles.cardDescription,
                             ),
-                            if (brk.isActive)
-                              TextButton(
-                                onPressed: () => ref
-                                    .read(attendanceProvider.notifier)
-                                    .endBreak(brk.id),
-                                child: const Text(
-                                  'End',
-                                  style: TextStyle(color: AppColors.primary),
-                                ),
-                              )
-                            else
-                              Text(
-                                '${brk.duration ?? 0} min',
-                                style: AppStyles.cardDescription,
-                              ),
-                          ],
-                        ),
+                        ],
                       ),
                     )),
               ],
@@ -282,11 +271,9 @@ class _TodayTab extends ConsumerWidget {
       ),
     );
   }
-
-  String _formatTime(String isoString) {
-    return formatTimePKT(isoString);
-  }
 }
+
+// ─── History Tab ─────────────────────────────────────────────────────────────
 
 class _HistoryTab extends ConsumerStatefulWidget {
   @override
@@ -296,7 +283,7 @@ class _HistoryTab extends ConsumerStatefulWidget {
 class _HistoryTabState extends ConsumerState<_HistoryTab> {
   int _selectedYear = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
-  String _statusFilter = 'all'; // all, present, absent
+  String _statusFilter = 'all';
 
   @override
   void initState() {
@@ -314,16 +301,12 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
         );
   }
 
-  /// Generate all working days (Mon-Fri) for the selected month,
-  /// then merge with actual attendance records.
-  /// Days with no record and before today = Absent.
   List<AttendanceModel> _buildFullHistory(List<AttendanceModel> records) {
     final firstDay = DateTime(_selectedYear, _selectedMonth, 1);
     final lastDay = DateTime(_selectedYear, _selectedMonth + 1, 0);
     final today = DateTime.now();
     final todayStr = today.toIso8601String().split('T')[0];
 
-    // Map existing records by date
     final recordMap = <String, AttendanceModel>{};
     for (final r in records) {
       recordMap[r.date] = r;
@@ -334,7 +317,6 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
     for (var day = firstDay;
         !day.isAfter(lastDay);
         day = day.add(const Duration(days: 1))) {
-      // Skip weekends (Saturday=6, Sunday=7)
       if (day.weekday == 6 || day.weekday == 7) continue;
 
       final dateStr = day.toIso8601String().split('T')[0];
@@ -342,7 +324,6 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
       if (recordMap.containsKey(dateStr)) {
         result.add(recordMap[dateStr]!);
       } else if (day.isBefore(today) && dateStr != todayStr) {
-        // Past working day with no record = absent
         result.add(AttendanceModel(
           id: 'absent-$dateStr',
           userId: '',
@@ -352,7 +333,6 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
       }
     }
 
-    // Sort descending (newest first)
     result.sort((a, b) => b.date.compareTo(a.date));
     return result;
   }
@@ -388,20 +368,19 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // Year selector
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.chevron_left, color: AppColors.white),
+                        icon: const Icon(Icons.chevron_left,
+                            color: AppColors.white),
                         onPressed: () => setSheetState(() => tempYear--),
                       ),
-                      Text(
-                        '$tempYear',
-                        style: AppStyles.cardTitle.copyWith(fontSize: 18),
-                      ),
+                      Text('$tempYear',
+                          style: AppStyles.cardTitle.copyWith(fontSize: 18)),
                       IconButton(
-                        icon: const Icon(Icons.chevron_right, color: AppColors.white),
+                        icon: const Icon(Icons.chevron_right,
+                            color: AppColors.white),
                         onPressed: tempYear < DateTime.now().year
                             ? () => setSheetState(() => tempYear++)
                             : null,
@@ -409,7 +388,6 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // Month grid
                   GridView.count(
                     crossAxisCount: 4,
                     shrinkWrap: true,
@@ -420,7 +398,8 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                     children: months.map((m) {
                       final isFuture = tempYear == DateTime.now().year &&
                           m > DateTime.now().month;
-                      final label = DateFormat('MMM').format(DateTime(2024, m));
+                      final label =
+                          DateFormat('MMM').format(DateTime(2024, m));
                       return GestureDetector(
                         onTap: isFuture
                             ? null
@@ -469,13 +448,10 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'Apply',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: const Text('Apply',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -492,48 +468,61 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
   Widget build(BuildContext context) {
     final state = ref.watch(attendanceProvider);
     final monthLabel =
-        DateFormat('MMM yyyy').format(DateTime(_selectedYear, _selectedMonth));
+        DateFormat('MMMM yyyy').format(DateTime(_selectedYear, _selectedMonth));
 
-    // Build full history with absent days
-    final fullHistory = state.isLoading ? <AttendanceModel>[] : _buildFullHistory(state.history);
+    final fullHistory = state.isLoading
+        ? <AttendanceModel>[]
+        : _buildFullHistory(state.history);
 
-    // Apply status filter
     final filteredHistory = _statusFilter == 'all'
         ? fullHistory
         : fullHistory.where((r) {
-            if (_statusFilter == 'present') {
-              return r.status != 'absent';
-            } else {
-              return r.status == 'absent';
-            }
+            if (_statusFilter == 'present') return r.status != 'absent';
+            return r.status == 'absent';
           }).toList();
 
-    // Count stats
-    final presentCount = fullHistory.where((r) => r.status != 'absent').length;
-    final absentCount = fullHistory.where((r) => r.status == 'absent').length;
+    final totalDays = fullHistory.length;
+    final presentCount =
+        fullHistory.where((r) => r.status != 'absent').length;
+    final absentCount =
+        fullHistory.where((r) => r.status == 'absent').length;
 
     if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(
+          child: CircularProgressIndicator(color: AppColors.primary));
     }
 
     return CustomScrollView(
       slivers: [
-        // Summary counts (scrolls away)
+        // ── Summary cards ──
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               children: [
-                _SummaryChip('Total', '${fullHistory.length}', AppColors.white70),
-                const SizedBox(width: 8),
-                _SummaryChip('Present', '$presentCount', const Color(0xFF2ECC71)),
-                const SizedBox(width: 8),
-                _SummaryChip('Absent', '$absentCount', const Color(0xFFE74C3C)),
+                _SummaryCard(
+                  label: 'TOTAL DAYS',
+                  value: '$totalDays',
+                  color: AppColors.white,
+                ),
+                const SizedBox(width: 12),
+                _SummaryCard(
+                  label: 'PRESENT',
+                  value: '$presentCount',
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 12),
+                _SummaryCard(
+                  label: 'ABSENT',
+                  value: absentCount.toString().padLeft(2, '0'),
+                  color: AppColors.white70,
+                ),
               ],
             ),
           ),
         ),
-        // Filter row: chips + month picker — STICKY
+
+        // ── Filter chips + month picker ──
         SliverPersistentHeader(
           pinned: true,
           delegate: _StickyFilterDelegate(
@@ -553,26 +542,22 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                   const Spacer(),
                   GestureDetector(
                     onTap: _showFilterSheet,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(monthLabel,
-                              style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  color: AppColors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500)),
-                          const SizedBox(width: 2),
-                          const Icon(Icons.keyboard_arrow_down,
-                              color: AppColors.white70, size: 16),
-                        ],
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          monthLabel,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            color: AppColors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Iconsax.calendar_1,
+                            color: AppColors.white70, size: 16),
+                      ],
                     ),
                   ),
                 ],
@@ -580,7 +565,16 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
             ),
           ),
         ),
-        // Records list
+
+        // ── Divider ──
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Divider(color: AppColors.divider, height: 1),
+          ),
+        ),
+
+        // ── Records list ──
         if (filteredHistory.isEmpty)
           const SliverFillRemaining(
             child: EmptyState(
@@ -590,55 +584,12 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
           )
         else
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final record = filteredHistory[index];
-                  final isAbsent = record.status == 'absent';
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: AppCard(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  formatDateShort(record.date),
-                                  style: AppStyles.cardTitle.copyWith(fontSize: 14),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  isAbsent
-                                      ? 'No attendance recorded'
-                                      : record.clockIn != null
-                                          ? '${formatTimePKT(record.clockIn!)}${record.clockOut != null ? ' - ${formatTimePKT(record.clockOut!)}' : ' - Present'}'
-                                          : 'No record',
-                                  style: AppStyles.cardDescription.copyWith(
-                                    color: isAbsent
-                                        ? const Color(0xFFE74C3C).withAlpha(180)
-                                        : AppColors.white70,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (!isAbsent && record.totalHours != null)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: Text(
-                                '${record.totalHours!.toStringAsFixed(1)}h',
-                                style: AppStyles.cardTitle,
-                              ),
-                            ),
-                          StatusBadge(label: record.attendanceStatus.label),
-                        ],
-                      ),
-                    ),
-                  );
+                  return _AttendanceRow(record: record);
                 },
                 childCount: filteredHistory.length,
               ),
@@ -648,6 +599,145 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
     );
   }
 }
+
+// ─── Attendance Row (matching reference design) ──────────────────────────────
+
+class _AttendanceRow extends StatelessWidget {
+  final AttendanceModel record;
+  const _AttendanceRow({required this.record});
+
+  @override
+  Widget build(BuildContext context) {
+    final isAbsent = record.status == 'absent';
+    final date = DateTime.tryParse(record.date);
+    final dayName = date != null ? DateFormat('EEEE').format(date) : '';
+    final dateFormatted = date != null
+        ? DateFormat('MMM dd, yyyy').format(date)
+        : record.date;
+
+    String timeRange;
+    if (isAbsent) {
+      timeRange = '-- : -- : --';
+    } else if (record.clockIn != null) {
+      final inTime = formatTimePKT(record.clockIn!);
+      final outTime =
+          record.clockOut != null ? formatTimePKT(record.clockOut!) : '--:--';
+      timeRange = '$inTime - $outTime';
+    } else {
+      timeRange = '-- : -- : --';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.divider, width: 0.5),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Date and day
+          Expanded(
+            flex: 5,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dateFormatted,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    color: AppColors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  dayName,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    color: AppColors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Time range
+          Expanded(
+            flex: 5,
+            child: Text(
+              timeRange,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: isAbsent ? AppColors.white70 : AppColors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
+          // Status
+          Text(
+            isAbsent ? 'ABSENT' : 'PRESENT',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              color: isAbsent ? AppColors.white70 : AppColors.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Summary Card ────────────────────────────────────────────────────────────
+
+class _SummaryCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _SummaryCard({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              color: AppColors.white70,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              color: color,
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Filter Chip ─────────────────────────────────────────────────────────────
 
 class _FilterChip extends StatelessWidget {
   final String label;
@@ -660,66 +750,33 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.card,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : AppColors.white70,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            fontSize: 13,
-          ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: 'Inter',
+          color: isSelected ? AppColors.primary : AppColors.white70,
+          fontSize: 13,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
         ),
       ),
     );
   }
 }
 
-class _SummaryChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _SummaryChip(this.label, this.value, this.color);
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Text(value, style: AppStyles.dashboardNumber.copyWith(fontSize: 22, color: color)),
-            const SizedBox(height: 2),
-            Text(label, style: AppStyles.dashboardLabel.copyWith(fontSize: 13)),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// ─── Sticky Header Delegate ──────────────────────────────────────────────────
 
 class _StickyFilterDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
-
   _StickyFilterDelegate({required this.child});
 
   @override
   double get minExtent => 50;
-
   @override
   double get maxExtent => 50;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
     return child;
   }
 
