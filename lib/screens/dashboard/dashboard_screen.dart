@@ -2,9 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import '../../core/colors.dart';
-import '../../core/styles.dart';
 import '../../core/time_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/attendance_provider.dart';
@@ -46,13 +44,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ref.read(leaveProvider.notifier).loadBalance(user.id);
   }
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
@@ -67,18 +58,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Greeting
-            Text(
-              '${_getGreeting()}, ${user.firstName}',
-              style: AppStyles.homeGreeting,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              DateFormat('EEEE, MMMM d, y').format(_currentTime),
-              style: AppStyles.homeSubtitle,
-            ),
-            const SizedBox(height: 20),
-
             // Punch Card — attendance + timer + stats
             PunchCardWidget(currentTime: _currentTime),
             const SizedBox(height: 16),
