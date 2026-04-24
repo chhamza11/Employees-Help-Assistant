@@ -9,7 +9,6 @@ import '../../providers/leave_provider.dart';
 import 'widgets/punch_card_widget.dart';
 import 'widgets/leave_summary_widget.dart';
 import 'widgets/monthly_hours_chart.dart';
-import 'widgets/quick_actions_widget.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -70,10 +69,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
             // Monthly Working Hours Chart
             const MonthlyHoursChart(),
-            const SizedBox(height: 20),
-
-            // Quick Actions
-            const QuickActionsWidget(),
             const SizedBox(height: 20),
           ],
         ),
