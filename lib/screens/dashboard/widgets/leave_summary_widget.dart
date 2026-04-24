@@ -11,87 +11,84 @@ class LeaveSummaryWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final balance = ref.watch(leaveProvider).balance;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row with title and action button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Leave Balance',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Leave Balance',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
-              SizedBox(
-                height: 32,
-                child: ElevatedButton(
-                  onPressed: () => context.push('/leave/request'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+            ),
+            SizedBox(
+              height: 32,
+              child: OutlinedButton(
+                onPressed: () => context.push('/leave/request'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: AppColors.white70, width: 1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                    'Leave Request',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                ),
+                child: const Text(
+                  'Leave Request',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
 
-          // Stats row
-          balance == null
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Text(
-                      'Loading...',
-                      style: TextStyle(color: AppColors.white70, fontSize: 13),
-                    ),
+        // Stats row with vertical dividers
+        balance == null
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text(
+                    'Loading...',
+                    style: TextStyle(color: AppColors.white70, fontSize: 13),
                   ),
-                )
-              : Row(
+                ),
+              )
+            : IntrinsicHeight(
+                child: Row(
                   children: [
-                    _LeaveStat(
-                      label: 'Total Leaves',
-                      value: '${balance.totalLeaves}',
-                    ),
-                    _LeaveStat(
-                      label: 'Leaves Taken',
-                      value: '${balance.totalUsed}',
-                    ),
-                    _LeaveStat(
-                      label: 'Remaining',
-                      value: '${balance.totalRemaining}',
-                    ),
-                    _LeaveStat(
-                      label: 'Annual Left',
-                      value: '${balance.remainingAnnual}',
-                    ),
+                    _LeaveStat(label: 'Total Leaves', value: '${balance.totalLeaves}'),
+                    _divider(),
+                    _LeaveStat(label: 'Leaves Taken', value: '${balance.totalUsed}'),
+                    _divider(),
+                    _LeaveStat(label: 'Remaining', value: '${balance.totalRemaining}'),
+                    _divider(),
+                    _LeaveStat(label: 'Annual Left', value: '${balance.remainingAnnual}'),
                   ],
                 ),
-        ],
-      ),
+              ),
+
+        const SizedBox(height: 12),
+        const Divider(color: AppColors.divider, height: 1),
+      ],
+    );
+  }
+
+  static Widget _divider() {
+    return Container(
+      width: 1,
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      color: AppColors.divider,
     );
   }
 }
