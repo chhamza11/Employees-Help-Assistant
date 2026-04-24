@@ -1,27 +1,26 @@
 import 'package:flutter/material.dart';
-import 'screens/splash/splash_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'config/routes.dart';
+import 'config/theme.dart';
 
-void main() {
-  runApp(const SpeedforceApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  await Hive.openBox('query_history');
+  runApp(const ProviderScope(child: EmployeePortalApp()));
 }
 
-class SpeedforceApp extends StatelessWidget {
-  const SpeedforceApp({super.key});
+class EmployeePortalApp extends StatelessWidget {
+  const EmployeePortalApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Employee Help Assistant',
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF13103F), // Your brand color
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF13103F),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      home: const SplashScreen(),
+      title: 'Employee Portal SFD',
+      theme: AppTheme.darkTheme,
+      routerConfig: appRouter,
     );
   }
 }
