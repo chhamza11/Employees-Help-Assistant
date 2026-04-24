@@ -492,109 +492,93 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
           child: CircularProgressIndicator(color: AppColors.primary));
     }
 
-    return CustomScrollView(
-      slivers: [
+    return Column(
+      children: [
         // ── Summary cards ──
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Row(
-              children: [
-                _SummaryCard(
-                  label: 'TOTAL DAYS',
-                  value: '$totalDays',
-                  color: AppColors.white,
-                ),
-                const SizedBox(width: 12),
-                _SummaryCard(
-                  label: 'PRESENT',
-                  value: '$presentCount',
-                  color: AppColors.primary,
-                ),
-                const SizedBox(width: 12),
-                _SummaryCard(
-                  label: 'ABSENT',
-                  value: absentCount.toString().padLeft(2, '0'),
-                  color: AppColors.white70,
-                ),
-              ],
-            ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            children: [
+              _SummaryCard(
+                label: 'TOTAL DAYS',
+                value: '$totalDays',
+                color: AppColors.white,
+              ),
+              const SizedBox(width: 12),
+              _SummaryCard(
+                label: 'PRESENT',
+                value: '$presentCount',
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 12),
+              _SummaryCard(
+                label: 'ABSENT',
+                value: absentCount.toString().padLeft(2, '0'),
+                color: AppColors.white70,
+              ),
+            ],
           ),
         ),
 
         // ── Filter chips + month picker ──
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: _StickyFilterDelegate(
-            child: Container(
-              color: AppColors.background,
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Row(
-                children: [
-                  _FilterChip('All', _statusFilter == 'all',
-                      () => setState(() => _statusFilter = 'all')),
-                  const SizedBox(width: 6),
-                  _FilterChip('Present', _statusFilter == 'present',
-                      () => setState(() => _statusFilter = 'present')),
-                  const SizedBox(width: 6),
-                  _FilterChip('Absent', _statusFilter == 'absent',
-                      () => setState(() => _statusFilter = 'absent')),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: _showFilterSheet,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          monthLabel,
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            color: AppColors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(Iconsax.calendar_1,
-                            color: AppColors.white70, size: 16),
-                      ],
+        Container(
+          color: AppColors.background,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Row(
+            children: [
+              _FilterChip('All', _statusFilter == 'all',
+                  () => setState(() => _statusFilter = 'all')),
+              const SizedBox(width: 6),
+              _FilterChip('Present', _statusFilter == 'present',
+                  () => setState(() => _statusFilter = 'present')),
+              const SizedBox(width: 6),
+              _FilterChip('Absent', _statusFilter == 'absent',
+                  () => setState(() => _statusFilter = 'absent')),
+              const Spacer(),
+              GestureDetector(
+                onTap: _showFilterSheet,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      monthLabel,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        color: AppColors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    const Icon(Iconsax.calendar_1,
+                        color: AppColors.white70, size: 16),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
 
-        // ── Divider ──
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Divider(color: AppColors.divider, height: 1),
-          ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Divider(color: AppColors.divider, height: 1),
         ),
 
         // ── Records list ──
-        if (filteredHistory.isEmpty)
-          const SliverFillRemaining(
-            child: EmptyState(
-              icon: Iconsax.clock,
-              message: 'No records for this filter',
-            ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final record = filteredHistory[index];
-                  return _AttendanceRow(record: record);
-                },
-                childCount: filteredHistory.length,
-              ),
-            ),
-          ),
+        Expanded(
+          child: filteredHistory.isEmpty
+              ? const EmptyState(
+                  icon: Iconsax.clock,
+                  message: 'No records for this filter',
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                  itemCount: filteredHistory.length,
+                  itemBuilder: (context, index) {
+                    return _AttendanceRow(record: filteredHistory[index]);
+                  },
+                ),
+        ),
       ],
     );
   }
@@ -763,23 +747,3 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-// ─── Sticky Header Delegate ──────────────────────────────────────────────────
-
-class _StickyFilterDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  _StickyFilterDelegate({required this.child});
-
-  @override
-  double get minExtent => 50;
-  @override
-  double get maxExtent => 50;
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return child;
-  }
-
-  @override
-  bool shouldRebuild(covariant _StickyFilterDelegate oldDelegate) => true;
-}
