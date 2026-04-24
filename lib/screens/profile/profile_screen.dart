@@ -5,7 +5,6 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../core/colors.dart';
 import '../../core/styles.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/app_card.dart';
 import '../../widgets/info_tile.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -20,73 +19,70 @@ class ProfileScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Header card with avatar and actions
-          AppCard(
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 36,
-                  backgroundColor: AppColors.primary,
-                  child: Text(
-                    user.firstName[0].toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+          // Header with avatar and actions
+          Column(
+            children: [
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: AppColors.primary,
+                child: Text(
+                  user.firstName[0].toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(user.name, style: AppStyles.sectionTitle),
+              ),
+              const SizedBox(height: 12),
+              Text(user.name, style: AppStyles.sectionTitle),
+              const SizedBox(height: 4),
+              Text(
+                '${user.position ?? 'Employee'} - ${user.department ?? 'General'}',
+                style: AppStyles.cardDescription,
+              ),
+              if (user.employeeId != null) ...[
                 const SizedBox(height: 4),
-                Text(
-                  '${user.position ?? 'Employee'} - ${user.department ?? 'General'}',
-                  style: AppStyles.cardDescription,
-                ),
-                if (user.employeeId != null) ...[
-                  const SizedBox(height: 4),
-                  Text('ID: ${user.employeeId}', style: AppStyles.dashboardLabel),
-                ],
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () => context.push('/profile/edit'),
-                      icon: const Icon(Iconsax.edit_2, size: 16),
-                      label: const Text('Edit Profile'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: () => context.push('/settings'),
-                      icon: const Icon(Iconsax.setting_2, size: 16),
-                      label: const Text('Settings'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.card,
-                        foregroundColor: AppColors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                Text('ID: ${user.employeeId}', style: AppStyles.dashboardLabel),
               ],
-            ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => context.push('/profile/edit'),
+                    icon: const Icon(Iconsax.edit_2, size: 16),
+                    label: const Text('Edit Profile'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () => context.push('/settings'),
+                    icon: const Icon(Iconsax.setting_2, size: 16),
+                    label: const Text('Settings'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.card,
+                      foregroundColor: AppColors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           const SizedBox(height: 16),
-          // All profile info in one continuous card
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          // All profile info
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                 // Personal Information
                 _SectionTitle('Personal Information'),
                 InfoTile(label: 'Email', value: user.email, icon: Iconsax.sms),
