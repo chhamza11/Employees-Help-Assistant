@@ -26,6 +26,7 @@ class PunchCardWidget extends ConsumerWidget {
     // Calculate elapsed time since clock in
     int elapsedHours = 0;
     int elapsedMinutes = 0;
+    int elapsedSeconds = 0;
     if (hasClockedIn && attendance?.clockIn != null) {
       final clockInTime = DateTime.tryParse(attendance!.clockIn!);
       if (clockInTime != null) {
@@ -35,6 +36,7 @@ class PunchCardWidget extends ConsumerWidget {
         final diff = end.difference(clockInTime);
         elapsedHours = diff.inHours;
         elapsedMinutes = diff.inMinutes % 60;
+        elapsedSeconds = diff.inSeconds % 60;
       }
     }
 
@@ -159,60 +161,28 @@ class PunchCardWidget extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    // Live hours:minutes counter
+                    // Live hours:minutes:seconds counter
                     Row(
                       children: [
                         _TimeBox(value: elapsedHours.toString().padLeft(2, '0')),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text(
-                            ':',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
+                        const _TimeSeparator(),
                         _TimeBox(value: elapsedMinutes.toString().padLeft(2, '0')),
+                        const _TimeSeparator(),
+                        _TimeBox(value: elapsedSeconds.toString().padLeft(2, '0')),
                       ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                // Hours / Minutes labels under counter
+                // Hours / Minutes / Seconds labels under counter
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    SizedBox(
-                      width: 40,
-                      child: Text(
-                        'HOURS',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 8,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
+                    _TimeLabel('HOURS'),
                     const SizedBox(width: 12),
-                    SizedBox(
-                      width: 40,
-                      child: Text(
-                        'MINUTES',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 8,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
+                    _TimeLabel('MIN'),
+                    const SizedBox(width: 12),
+                    _TimeLabel('SEC'),
                   ],
                 ),
               ],
@@ -239,6 +209,48 @@ class PunchCardWidget extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TimeSeparator extends StatelessWidget {
+  const _TimeSeparator();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 3),
+      child: Text(
+        ':',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _TimeLabel extends StatelessWidget {
+  final String text;
+  const _TimeLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 40,
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: 'Inter',
+          color: Colors.white.withValues(alpha: 0.6),
+          fontSize: 8,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }

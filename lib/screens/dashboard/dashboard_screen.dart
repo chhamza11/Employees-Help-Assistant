@@ -9,6 +9,7 @@ import '../../providers/attendance_provider.dart';
 import '../../providers/leave_provider.dart';
 import 'widgets/punch_card_widget.dart';
 import 'widgets/leave_summary_widget.dart';
+import 'widgets/monthly_hours_chart.dart';
 import 'widgets/quick_actions_widget.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -64,6 +65,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
             // Leave Balance Summary
             const LeaveSummaryWidget(),
+            const SizedBox(height: 20),
+
+            // Monthly Working Hours Chart
+            const MonthlyHoursChart(),
             const SizedBox(height: 20),
 
             // Quick Actions

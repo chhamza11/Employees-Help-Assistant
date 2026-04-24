@@ -21,33 +21,22 @@ class QuickActionsWidget extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.6,
+        Row(
           children: [
-            _ActionTile(
-              icon: Iconsax.clock,
-              label: 'Attendance\nHistory',
-              onTap: () => context.push('/attendance'),
+            Expanded(
+              child: _ActionTile(
+                icon: Iconsax.clock,
+                label: 'Attendance\nHistory',
+                onTap: () => context.push('/attendance'),
+              ),
             ),
-            _ActionTile(
-              icon: Iconsax.note,
-              label: 'Leave\nBalance',
-              onTap: () => context.go('/leave'),
-            ),
-            _ActionTile(
-              icon: Iconsax.document_text,
-              label: 'Documents',
-              onTap: () => context.push('/documents'),
-            ),
-            _ActionTile(
-              icon: Iconsax.task_square,
-              label: 'Tasks',
-              onTap: () => context.push('/tasks'),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _ActionTile(
+                icon: Iconsax.note,
+                label: 'Leave\nBalance',
+                onTap: () => context.go('/leave'),
+              ),
             ),
           ],
         ),
@@ -72,6 +61,7 @@ class _ActionTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
           color: AppColors.primary,
           borderRadius: BorderRadius.circular(14),
