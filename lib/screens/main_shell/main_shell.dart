@@ -123,7 +123,17 @@ class _MainShellState extends ConsumerState<MainShell> {
             ),
         ],
       ),
-      body: widget.child,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+        child: KeyedSubtree(
+          key: ValueKey(_currentIndex(context)),
+          child: widget.child,
+        ),
+      ),
       floatingActionButton: _currentIndex(context) == 0 ? FloatingActionButton(
         onPressed: () => context.push('/buddy'),
         backgroundColor: AppColors.primary,

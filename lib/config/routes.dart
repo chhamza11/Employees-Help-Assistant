@@ -47,15 +47,21 @@ final GoRouter appRouter = GoRouter(
       routes: [
         GoRoute(
           path: '/dashboard',
-          builder: (context, state) => const DashboardScreen(),
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: DashboardScreen(),
+          ),
         ),
         GoRoute(
           path: '/attendance',
-          builder: (context, state) => const AttendanceScreen(),
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: AttendanceScreen(),
+          ),
         ),
         GoRoute(
           path: '/leave',
-          builder: (context, state) => const LeaveScreen(),
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: LeaveScreen(),
+          ),
           routes: [
             GoRoute(
               path: 'request',
@@ -73,7 +79,9 @@ final GoRouter appRouter = GoRouter(
         ),
         GoRoute(
           path: '/profile',
-          builder: (context, state) => const ProfileScreen(),
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: ProfileScreen(),
+          ),
           routes: [
             GoRoute(
               path: 'edit',
