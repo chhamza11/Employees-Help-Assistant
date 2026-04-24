@@ -464,6 +464,65 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
     );
   }
 
+  Widget _buildHeader(int totalDays, int presentCount, int absentCount, Color totalColor, Color presentColor, Color absentColor, String monthLabel) {
+    return Column(
+      children: [
+        // Summary cards
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          child: Row(
+            children: [
+              _SummaryCard(label: 'TOTAL DAYS', value: '$totalDays', color: totalColor),
+              const SizedBox(width: 12),
+              _SummaryCard(label: 'PRESENT', value: '$presentCount', color: presentColor),
+              const SizedBox(width: 12),
+              _SummaryCard(label: 'ABSENT', value: absentCount.toString().padLeft(2, '0'), color: absentColor),
+            ],
+          ),
+        ),
+
+        // Filter tabs with underline indicator + month picker
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Row(
+            children: [
+              _FilterTab('All', _statusFilter == 'all', () => setState(() => _statusFilter = 'all')),
+              const SizedBox(width: 20),
+              _FilterTab('Present', _statusFilter == 'present', () => setState(() => _statusFilter = 'present')),
+              const SizedBox(width: 20),
+              _FilterTab('Absent', _statusFilter == 'absent', () => setState(() => _statusFilter = 'absent')),
+              const Spacer(),
+              GestureDetector(
+                onTap: _showFilterSheet,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      monthLabel,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        color: AppColors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Iconsax.calendar_1, color: AppColors.white70, size: 16),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Divider(color: AppColors.divider, height: 1),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(attendanceProvider);
@@ -492,95 +551,36 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
           child: CircularProgressIndicator(color: AppColors.primary));
     }
 
-    return Column(
-      children: [
-        // ── Summary cards ──
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
+    // Highlight selected filter's summary card
+    final totalColor = _statusFilter == 'all' ? AppColors.primary : AppColors.white;
+    final presentColor = _statusFilter == 'present' ? AppColors.primary : AppColors.white70;
+    final absentColor = _statusFilter == 'absent' ? AppColors.primary : AppColors.white70;
+
+    return filteredHistory.isEmpty
+        ? Column(
             children: [
-              _SummaryCard(
-                label: 'TOTAL DAYS',
-                value: '$totalDays',
-                color: AppColors.white,
-              ),
-              const SizedBox(width: 12),
-              _SummaryCard(
-                label: 'PRESENT',
-                value: '$presentCount',
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 12),
-              _SummaryCard(
-                label: 'ABSENT',
-                value: absentCount.toString().padLeft(2, '0'),
-                color: AppColors.white70,
-              ),
-            ],
-          ),
-        ),
-
-        // ── Filter chips + month picker ──
-        Container(
-          color: AppColors.background,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Row(
-            children: [
-              _FilterChip('All', _statusFilter == 'all',
-                  () => setState(() => _statusFilter = 'all')),
-              const SizedBox(width: 6),
-              _FilterChip('Present', _statusFilter == 'present',
-                  () => setState(() => _statusFilter = 'present')),
-              const SizedBox(width: 6),
-              _FilterChip('Absent', _statusFilter == 'absent',
-                  () => setState(() => _statusFilter = 'absent')),
-              const Spacer(),
-              GestureDetector(
-                onTap: _showFilterSheet,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      monthLabel,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        color: AppColors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Iconsax.calendar_1,
-                        color: AppColors.white70, size: 16),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Divider(color: AppColors.divider, height: 1),
-        ),
-
-        // ── Records list ──
-        Expanded(
-          child: filteredHistory.isEmpty
-              ? const EmptyState(
+              _buildHeader(totalDays, presentCount, absentCount, totalColor, presentColor, absentColor, monthLabel),
+              const Expanded(
+                child: EmptyState(
                   icon: Iconsax.clock,
                   message: 'No records for this filter',
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                  itemCount: filteredHistory.length,
-                  itemBuilder: (context, index) {
-                    return _AttendanceRow(record: filteredHistory[index]);
-                  },
                 ),
-        ),
-      ],
-    );
+              ),
+            ],
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.only(bottom: 80),
+            itemCount: filteredHistory.length + 1, // +1 for header
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return _buildHeader(totalDays, presentCount, absentCount, totalColor, presentColor, absentColor, monthLabel);
+              }
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _AttendanceRow(record: filteredHistory[index - 1]),
+              );
+            },
+          );
   }
 }
 
@@ -721,27 +721,43 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-// ─── Filter Chip ─────────────────────────────────────────────────────────────
+// ─── Filter Tab with underline indicator ─────────────────────────────────────
 
-class _FilterChip extends StatelessWidget {
+class _FilterTab extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _FilterChip(this.label, this.isSelected, this.onTap);
+  const _FilterTab(this.label, this.isSelected, this.onTap);
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Text(
-        label,
-        style: TextStyle(
-          fontFamily: 'Inter',
-          color: isSelected ? AppColors.primary : AppColors.white70,
-          fontSize: 13,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-        ),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              color: isSelected ? AppColors.primary : AppColors.white70,
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: 4),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: 2,
+            width: isSelected ? 24 : 0,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+        ],
       ),
     );
   }
