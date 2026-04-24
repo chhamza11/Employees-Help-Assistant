@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/colors.dart';
 import '../../core/time_utils.dart';
 import '../../providers/auth_provider.dart';
@@ -41,7 +40,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void _loadData() {
     final user = ref.read(authProvider).user;
     if (user == null) return;
+    final now = nowPKT();
     ref.read(attendanceProvider.notifier).loadTodayAttendance(user.id);
+    ref.read(attendanceProvider.notifier).loadHistoryForMonth(user.id, now.year, now.month);
     ref.read(leaveProvider.notifier).loadBalance(user.id);
   }
 

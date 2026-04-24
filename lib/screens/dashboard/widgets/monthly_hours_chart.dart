@@ -28,7 +28,6 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
       parent: _animController,
       curve: Curves.easeOutCubic,
     );
-    // Start animation after build
     Future(() => _animController.forward());
   }
 
@@ -38,12 +37,13 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
     super.dispose();
   }
 
-  /// Count working days (Mon-Fri) in the given month
-  int _workingDaysInMonth(int year, int month) {
+  /// Count working days (Mon-Fri) in the entire month
+  int _totalWorkingDaysInMonth(int year, int month) {
     final daysInMonth = DateUtils.getDaysInMonth(year, month);
     int count = 0;
     for (int d = 1; d <= daysInMonth; d++) {
       final weekday = DateTime(year, month, d).weekday;
+      // DateTime.saturday = 6, DateTime.sunday = 7
       if (weekday != DateTime.saturday && weekday != DateTime.sunday) {
         count++;
       }
@@ -51,10 +51,12 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
     return count;
   }
 
-  /// Count working days elapsed so far this month (up to today)
+  /// Count working days elapsed so far (Mon-Fri up to today)
   int _workingDaysElapsed(int year, int month, int today) {
     int count = 0;
-    for (int d = 1; d <= today; d++) {
+    final daysInMonth = DateUtils.getDaysInMonth(year, month);
+    final maxDay = today > daysInMonth ? daysInMonth : today;
+    for (int d = 1; d <= maxDay; d++) {
       final weekday = DateTime(year, month, d).weekday;
       if (weekday != DateTime.saturday && weekday != DateTime.sunday) {
         count++;
@@ -66,16 +68,41 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
   @override
   Widget build(BuildContext context) {
     final now = nowPKT();
-    final workingDays = _workingDaysInMonth(now.year, now.month);
-    final totalRequired = workingDays * 8.0;
+    final attendState = ref.watch(attendanceProvider);
+    final history = attendState.history;
+
+    // Calculate working days for the full month
+    final totalWorkingDays = _totalWorkingDaysInMonth(now.year, now.month);
+    final totalRequired = totalWorkingDays * 8.0;
+
+    // Working days elapsed so far
     final elapsedWorkDays = _workingDaysElapsed(now.year, now.month, now.day);
     final expectedSoFar = elapsedWorkDays * 8.0;
 
-    // Get completed hours from attendance provider
-    final attendState = ref.watch(attendanceProvider);
-    final todayHours = attendState.todayAttendance?.totalHours ?? 0.0;
-    // For now use today's hours as a base — in production this would sum all month's records
-    final completedHours = todayHours;
+    // Sum completed hours from all attendance records this month
+    // (the provider loads monthly history via loadHistoryForMonth)
+    double completedHours = 0.0;
+    final monthStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    for (final record in history) {
+      if (record.date.startsWith(monthStr) && record.totalHours != null) {
+        completedHours += record.totalHours!;
+      }
+    }
+
+    // Also add today's live hours if not yet in history
+    final today = attendState.todayAttendance;
+    if (today != null && today.totalHours != null) {
+      final todayDate = today.date;
+      final alreadyCounted =
+          history.any((r) => r.date == todayDate && r.id == today.id);
+      if (!alreadyCounted) {
+        completedHours += today.totalHours!;
+      }
+    }
+
+    // Round to 1 decimal
+    completedHours = (completedHours * 10).roundToDouble() / 10;
 
     final completedPercent = totalRequired > 0
         ? (completedHours / totalRequired).clamp(0.0, 1.0)
@@ -84,12 +111,8 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
         ? (expectedSoFar / totalRequired).clamp(0.0, 1.0)
         : 0.0;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -193,14 +216,16 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
                 children: [
                   _ProgressBar(
                     label: 'Working Days',
-                    value: '$elapsedWorkDays / $workingDays days',
-                    percent: (elapsedWorkDays / max(workingDays, 1)) * _animation.value,
+                    value: '$elapsedWorkDays / $totalWorkingDays days',
+                    percent: (elapsedWorkDays / max(totalWorkingDays, 1)) *
+                        _animation.value,
                     color: AppColors.primary,
                   ),
                   const SizedBox(height: 10),
                   _ProgressBar(
                     label: 'Hours Progress',
-                    value: '${completedHours.toStringAsFixed(1)} / ${totalRequired.toStringAsFixed(0)}',
+                    value:
+                        '${completedHours.toStringAsFixed(1)} / ${totalRequired.toStringAsFixed(0)}',
                     percent: completedPercent * _animation.value,
                     color: AppColors.primary,
                   ),
@@ -281,7 +306,8 @@ class _StatDot extends StatelessWidget {
   final Color color;
   final String label;
   final String value;
-  const _StatDot({required this.color, required this.label, required this.value});
+  const _StatDot(
+      {required this.color, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
