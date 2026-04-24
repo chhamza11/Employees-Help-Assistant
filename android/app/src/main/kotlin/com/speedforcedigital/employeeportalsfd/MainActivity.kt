@@ -1,4 +1,4 @@
-package com.example.employeehelp_assistant
+package com.speedforcedigital.employeeportalsfd
 
 import io.flutter.embedding.android.FlutterActivity
 
