@@ -14,11 +14,26 @@ class MainShell extends ConsumerStatefulWidget {
   ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends ConsumerState<MainShell> {
+class _MainShellState extends ConsumerState<MainShell>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _fadeController;
+  int _previousIndex = 0;
+
   @override
   void initState() {
     super.initState();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+      value: 1.0,
+    );
     Future(() => _loadNotifications());
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
   }
 
   void _loadNotifications() {
@@ -37,20 +52,27 @@ class _MainShellState extends ConsumerState<MainShell> {
   }
 
   void _onTabTap(int index) {
-    switch (index) {
-      case 0:
-        context.go('/dashboard');
-        break;
-      case 1:
-        context.go('/attendance');
-        break;
-      case 2:
-        context.go('/leave');
-        break;
-      case 3:
-        context.go('/profile');
-        break;
-    }
+    final current = _currentIndex(context);
+    if (index == current) return;
+
+    // Fade out, navigate, then fade in
+    _fadeController.reverse().then((_) {
+      switch (index) {
+        case 0:
+          context.go('/dashboard');
+          break;
+        case 1:
+          context.go('/attendance');
+          break;
+        case 2:
+          context.go('/leave');
+          break;
+        case 3:
+          context.go('/profile');
+          break;
+      }
+      _fadeController.forward();
+    });
   }
 
   @override
@@ -123,16 +145,9 @@ class _MainShellState extends ConsumerState<MainShell> {
             ),
         ],
       ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 250),
-        transitionBuilder: (child, animation) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
-        child: KeyedSubtree(
-          key: ValueKey(_currentIndex(context)),
-          child: widget.child,
-        ),
+      body: FadeTransition(
+        opacity: _fadeController,
+        child: widget.child,
       ),
       floatingActionButton: _currentIndex(context) == 0 ? FloatingActionButton(
         onPressed: () => context.push('/buddy'),
