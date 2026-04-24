@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/colors.dart';
 import '../../../core/time_utils.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/attendance_provider.dart';
 
 class MonthlyHoursChart extends ConsumerStatefulWidget {
@@ -43,7 +44,6 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
     int count = 0;
     for (int d = 1; d <= daysInMonth; d++) {
       final weekday = DateTime(year, month, d).weekday;
-      // DateTime.saturday = 6, DateTime.sunday = 7
       if (weekday != DateTime.saturday && weekday != DateTime.sunday) {
         count++;
       }
@@ -53,9 +53,9 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
 
   /// Count working days elapsed so far (Mon-Fri up to today)
   int _workingDaysElapsed(int year, int month, int today) {
-    int count = 0;
     final daysInMonth = DateUtils.getDaysInMonth(year, month);
     final maxDay = today > daysInMonth ? daysInMonth : today;
+    int count = 0;
     for (int d = 1; d <= maxDay; d++) {
       final weekday = DateTime(year, month, d).weekday;
       if (weekday != DateTime.saturday && weekday != DateTime.sunday) {
@@ -65,11 +65,56 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
     return count;
   }
 
+  /// Calculate hours from clockIn to clockOut, matching web's calcSplit.
+  /// total = regular + overtime + break (1hr if session > 60min)
+  double _calcHoursForRecord(String? clockIn, String? clockOut, String? scheduledEnd) {
+    if (clockIn == null || clockOut == null) return 0;
+    final inTime = DateTime.tryParse(clockIn);
+    final outTime = DateTime.tryParse(clockOut);
+    if (inTime == null || outTime == null) return 0;
+
+    final totalMs = outTime.difference(inTime).inMilliseconds;
+    final totalMins = totalMs / 60000;
+
+    // 1 hour break if session > 60 minutes (matching web)
+    final applyBreak = totalMins > 60;
+    final brkMs = applyBreak ? 3600000 : 0;
+    final brkHrs = applyBreak ? 1.0 : 0.0;
+
+    double regular = 0;
+    double overtime = 0;
+
+    if (scheduledEnd != null && scheduledEnd.contains(':')) {
+      final parts = scheduledEnd.split(':');
+      final eh = int.tryParse(parts[0]) ?? 0;
+      final em = int.tryParse(parts[1]) ?? 0;
+      final schedEnd = DateTime(inTime.year, inTime.month, inTime.day, eh, em);
+      final schedMs = schedEnd.millisecondsSinceEpoch;
+      final outMs = outTime.millisecondsSinceEpoch;
+      final inMs = inTime.millisecondsSinceEpoch;
+
+      if (outMs > schedMs) {
+        regular = ((schedMs - inMs - brkMs).clamp(0, double.infinity)) / 3600000;
+        overtime = (outMs - schedMs) / 3600000;
+      } else {
+        regular = ((outMs - inMs - brkMs).clamp(0, double.infinity)) / 3600000;
+      }
+    } else {
+      regular = ((totalMs - brkMs).clamp(0, double.infinity)) / 3600000;
+    }
+
+    regular = (regular * 100).roundToDouble() / 100;
+    overtime = (overtime * 100).roundToDouble() / 100;
+    return regular + overtime + brkHrs;
+  }
+
   @override
   Widget build(BuildContext context) {
     final now = nowPKT();
+    final user = ref.watch(authProvider).user;
     final attendState = ref.watch(attendanceProvider);
     final history = attendState.history;
+    final scheduledEnd = user?.scheduledEnd;
 
     // Calculate working days for the full month
     final totalWorkingDays = _totalWorkingDaysInMonth(now.year, now.month);
@@ -80,29 +125,32 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
     final expectedSoFar = elapsedWorkDays * 8.0;
 
     // Sum completed hours from all attendance records this month
-    // (the provider loads monthly history via loadHistoryForMonth)
+    // Calculate from clockIn/clockOut times (matching web's calcSplit logic)
+    final monthStr = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     double completedHours = 0.0;
-    final monthStr =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}';
+
+    final countedIds = <String>{};
     for (final record in history) {
-      if (record.date.startsWith(monthStr) && record.totalHours != null) {
-        completedHours += record.totalHours!;
+      if (record.date.startsWith(monthStr) && record.clockIn != null && record.clockOut != null) {
+        completedHours += _calcHoursForRecord(record.clockIn, record.clockOut, scheduledEnd);
+        countedIds.add(record.id);
       }
     }
 
-    // Also add today's live hours if not yet in history
+    // Add today's live hours if currently clocked in (no clockOut yet)
     final today = attendState.todayAttendance;
-    if (today != null && today.totalHours != null) {
-      final todayDate = today.date;
-      final alreadyCounted =
-          history.any((r) => r.date == todayDate && r.id == today.id);
-      if (!alreadyCounted) {
-        completedHours += today.totalHours!;
+    if (today != null && today.clockIn != null && !countedIds.contains(today.id)) {
+      if (today.clockOut != null) {
+        // Clocked out today but not in history yet
+        completedHours += _calcHoursForRecord(today.clockIn, today.clockOut, scheduledEnd);
+      } else {
+        // Still clocked in — use current time as clockOut
+        completedHours += _calcHoursForRecord(today.clockIn, now.toIso8601String(), scheduledEnd);
       }
     }
 
-    // Round to 1 decimal
-    completedHours = (completedHours * 10).roundToDouble() / 10;
+    completedHours = (completedHours * 100).roundToDouble() / 100;
 
     final completedPercent = totalRequired > 0
         ? (completedHours / totalRequired).clamp(0.0, 1.0)
@@ -111,8 +159,17 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
         ? (expectedSoFar / totalRequired).clamp(0.0, 1.0)
         : 0.0;
 
+    // Format hours as Xh Ym
+    String fmtHours(double h) {
+      final hrs = h.floor();
+      final mins = ((h - hrs) * 60).round();
+      if (hrs == 0) return '${mins}m';
+      if (mins == 0) return '${hrs}h';
+      return '${hrs}h ${mins}m';
+    }
+
     return Padding(
-      padding: const EdgeInsets.only(top: 0),
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -130,7 +187,7 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
                 ),
               ),
               Text(
-                '${completedHours.toStringAsFixed(1)} / ${totalRequired.toStringAsFixed(0)} hrs',
+                '${fmtHours(completedHours)} / ${totalRequired.toStringAsFixed(0)} hrs',
                 style: const TextStyle(
                   fontFamily: 'Inter',
                   color: AppColors.white70,
@@ -192,7 +249,7 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
               _StatDot(
                 color: AppColors.primary,
                 label: 'Completed',
-                value: '${completedHours.toStringAsFixed(1)} hrs',
+                value: fmtHours(completedHours),
               ),
               _StatDot(
                 color: AppColors.white70,
@@ -225,7 +282,7 @@ class _MonthlyHoursChartState extends ConsumerState<MonthlyHoursChart>
                   _ProgressBar(
                     label: 'Hours Progress',
                     value:
-                        '${completedHours.toStringAsFixed(1)} / ${totalRequired.toStringAsFixed(0)}',
+                        '${fmtHours(completedHours)} / ${totalRequired.toStringAsFixed(0)}',
                     percent: completedPercent * _animation.value,
                     color: AppColors.primary,
                   ),
@@ -255,7 +312,6 @@ class _CircularChartPainter extends CustomPainter {
     const strokeWidth = 14.0;
     const startAngle = -pi / 2;
 
-    // Background track
     final bgPaint = Paint()
       ..color = AppColors.divider
       ..style = PaintingStyle.stroke
@@ -263,7 +319,6 @@ class _CircularChartPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     canvas.drawCircle(center, radius, bgPaint);
 
-    // Expected arc (white translucent)
     if (expectedPercent > 0) {
       final expectedPaint = Paint()
         ..color = AppColors.white70.withValues(alpha: 0.3)
@@ -279,7 +334,6 @@ class _CircularChartPainter extends CustomPainter {
       );
     }
 
-    // Completed arc (primary color)
     if (completedPercent > 0) {
       final completedPaint = Paint()
         ..color = AppColors.primary
@@ -306,8 +360,7 @@ class _StatDot extends StatelessWidget {
   final Color color;
   final String label;
   final String value;
-  const _StatDot(
-      {required this.color, required this.label, required this.value});
+  const _StatDot({required this.color, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {

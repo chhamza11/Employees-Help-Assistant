@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../../core/colors.dart';
-import '../../../core/styles.dart';
 import '../../../core/time_utils.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/attendance_provider.dart';
@@ -11,6 +10,55 @@ import '../../../providers/attendance_provider.dart';
 class PunchCardWidget extends ConsumerWidget {
   final DateTime currentTime;
   const PunchCardWidget({Key? key, required this.currentTime}) : super(key: key);
+
+  /// Calculate hours from clockIn to clockOut (or now), matching web's calcSplit logic.
+  /// Returns {total, regular, overtime, breakHrs} in hours.
+  Map<String, double> _calcHours(String? clockIn, String? clockOut, DateTime now, String? scheduledEnd) {
+    if (clockIn == null) return {'total': 0, 'regular': 0, 'overtime': 0, 'break': 0};
+
+    final inTime = DateTime.tryParse(clockIn);
+    if (inTime == null) return {'total': 0, 'regular': 0, 'overtime': 0, 'break': 0};
+
+    final outTime = clockOut != null ? (DateTime.tryParse(clockOut) ?? now) : now;
+    final totalMs = outTime.difference(inTime).inMilliseconds;
+    final totalMins = totalMs / 60000;
+
+    // 1 hour break if session > 60 minutes (matching web)
+    final applyBreak = totalMins > 60;
+    final brkMs = applyBreak ? 3600000 : 0;
+    final brkHrs = applyBreak ? 1.0 : 0.0;
+
+    double regular = 0;
+    double overtime = 0;
+
+    if (scheduledEnd != null && scheduledEnd.contains(':')) {
+      final parts = scheduledEnd.split(':');
+      final eh = int.tryParse(parts[0]) ?? 0;
+      final em = int.tryParse(parts[1]) ?? 0;
+      final schedEnd = DateTime(inTime.year, inTime.month, inTime.day, eh, em);
+      final schedMs = schedEnd.millisecondsSinceEpoch;
+      final outMs = outTime.millisecondsSinceEpoch;
+      final inMs = inTime.millisecondsSinceEpoch;
+
+      if (outMs > schedMs) {
+        regular = ((schedMs - inMs - brkMs).clamp(0, double.infinity)) / 3600000;
+        overtime = (outMs - schedMs) / 3600000;
+      } else {
+        regular = ((outMs - inMs - brkMs).clamp(0, double.infinity)) / 3600000;
+        overtime = 0;
+      }
+    } else {
+      regular = ((totalMs - brkMs).clamp(0, double.infinity)) / 3600000;
+      overtime = 0;
+    }
+
+    // Round to 2 decimals
+    regular = (regular * 100).roundToDouble() / 100;
+    overtime = (overtime * 100).roundToDouble() / 100;
+    final total = regular + overtime + brkHrs;
+
+    return {'total': total, 'regular': regular, 'overtime': overtime, 'break': brkHrs};
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -23,7 +71,7 @@ class PunchCardWidget extends ConsumerWidget {
     final hasClockedIn = attendance != null && attendance.clockIn != null;
     final isClockedOut = attendance != null && attendance.isClockedOut;
 
-    // Calculate elapsed time since clock in
+    // Calculate elapsed time for the live counter
     int elapsedHours = 0;
     int elapsedMinutes = 0;
     int elapsedSeconds = 0;
@@ -40,10 +88,18 @@ class PunchCardWidget extends ConsumerWidget {
       }
     }
 
-    final totalHours = attendance?.totalHours ?? 0.0;
-    final overtime = attendance?.overtimeHours ?? 0.0;
-    final breakMins = attendance?.breakMinutes ?? 0;
-    final remaining = (8.0 - totalHours).clamp(0.0, 8.0);
+    // Calculate work/remaining/overtime/break from clock times (matching web logic)
+    final hours = _calcHours(
+      attendance?.clockIn,
+      attendance?.clockOut,
+      currentTime,
+      user.scheduledEnd,
+    );
+    final totalHours = hours['total']!;
+    final overtime = hours['overtime']!;
+    final breakHrs = hours['break']!;
+    final scheduled = 8.0;
+    final remaining = (scheduled - totalHours).clamp(0.0, scheduled);
 
     return Container(
       decoration: BoxDecoration(
@@ -125,7 +181,6 @@ class PunchCardWidget extends ConsumerWidget {
                 // Punch-in time and live counter
                 Row(
                   children: [
-                    // Punch in info
                     Expanded(
                       child: Row(
                         children: [
@@ -174,7 +229,7 @@ class PunchCardWidget extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                // Hours / Minutes / Seconds labels under counter
+                // Labels
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -204,7 +259,7 @@ class PunchCardWidget extends ConsumerWidget {
                 _StatItem(label: 'Work Hours', value: '${totalHours.toStringAsFixed(1)} Hrs'),
                 _StatItem(label: 'Remaining', value: '${remaining.toStringAsFixed(1)} Hrs'),
                 _StatItem(label: 'Overtime', value: '${overtime.toStringAsFixed(1)} Hrs'),
-                _StatItem(label: 'Break', value: '${breakMins}m'),
+                _StatItem(label: 'Break', value: '${(breakHrs * 60).toInt()}m'),
               ],
             ),
           ),
@@ -221,14 +276,7 @@ class _TimeSeparator extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Padding(
       padding: EdgeInsets.symmetric(horizontal: 3),
-      child: Text(
-        ':',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+      child: Text(':', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
     );
   }
 }
